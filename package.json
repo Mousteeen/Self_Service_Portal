@@ -73,6 +73,7 @@
         "ts-jest": "^29.3.2",
         "tsconfig-paths": "^4.2.0",
         "typescript": "^5"
+        
     },
     "overrides": {
         "react-is": "^19.0.0"
