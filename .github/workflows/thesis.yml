@@ -34,10 +34,9 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
               - 'middleware.ts'
-              - 'drizzle.config.ts'        
+              - 'drizzle.config.ts'
               - '.env.template'
               - '.github/workflows/**'
-              
             frontend:
               - 'app/**'
               - '!app/_lib/**'
@@ -47,7 +46,6 @@ jobs:
               - 'package-lock.json'
               - '.env.template'
               - '.github/workflows/**'
-            
             integration:
               - 'test/integration/**'
               - 'db/**'
@@ -64,20 +62,25 @@ jobs:
     env:
       CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y gettext
           envsubst < .env.template > .env.local
-          npm ci
+          if [ ! -d "node_modules" ]; then npm ci; else echo "Using cached node_modules"; fi
       - name: Build Project
         run: npm run build
 
@@ -92,20 +95,25 @@ jobs:
         needs.detect-changes.outputs.backend == 'true'
       )
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
 
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y gettext
           envsubst < .env.template > .env.local
-          npm ci
+          if [ ! -d "node_modules" ]; then npm ci; else echo "Using cached node_modules"; fi
       - name: Run Backend Unit Tests
         run: npm test -- --testPathPattern='test/unit'
 
@@ -120,20 +128,25 @@ jobs:
         needs.detect-changes.outputs.frontend == 'true'
       )
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
 
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y gettext
           envsubst < .env.template > .env.local
-          npm ci
+          if [ ! -d "node_modules" ]; then npm ci; else echo "Using cached node_modules"; fi
       - name: Run Frontend Unit Tests
         run: npm test -- --testPathPattern='test/Frontend'
 
@@ -162,7 +175,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DB_HOSTNAME: localhost  
+      DB_HOSTNAME: localhost
       DB_PORT: 5432
       DB_NAME: self_service_test
       DB_USER: postgres
@@ -170,20 +183,25 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/self_service_test
       CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
 
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y gettext
           envsubst < .env.template > .env.local
-          npm ci
+          if [ ! -d "node_modules" ]; then npm ci; else echo "Using cached node_modules"; fi
       - name: Wait for Postgres
         run: |
           until pg_isready -h localhost -U postgres; do sleep 2; done
