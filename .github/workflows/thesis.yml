@@ -10,8 +10,52 @@ on:
       - main
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      integration: ${{ steps.filter.outputs.integration }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'db/**'
+              - 'app/_lib/**'
+              - 'test/unit/backend/**'
+              - 'jest.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'middleware.ts'
+              - 'drizzle.config.ts'
+              - '.env.template'
+            frontend:
+              - 'app/**'
+              - '!app/_lib/**'
+              - 'test/unit/frontend/**'
+              - 'jest.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.env.template'
+              - '!./github/workflows/**'
+            integration:
+              - 'test/integration/**'
+              - 'db/**'
+              - 'app/**'
+              - 'docker-compose.yml'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'jest.integration.config.js'
+              - '.env.template'
   build:
     runs-on: ubuntu-latest
+    needs: detect-changes
     env:
       CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
     steps:
@@ -34,7 +78,8 @@ jobs:
 
   backend-unit-tests:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, detect-changes]
+    if: needs.detect-changes.outputs.backend == 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -55,7 +100,8 @@ jobs:
 
   frontend-unit-tests:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, detect-changes]
+    if: needs.detect-changes.outputs.frontend == 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -76,7 +122,8 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
-    needs: [backend-unit-tests, frontend-unit-tests]
+    needs: [backend-unit-tests, frontend-unit-tests, detect-changes]
+    if: needs.detect-changes.outputs.integration == 'true'
     services:
       postgres:
         image: postgres:15
@@ -99,7 +146,6 @@ jobs:
       DB_PASSWORD: postgres
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/self_service_test
       CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -114,7 +160,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gettext
           envsubst < .env.template > .env.local
-          cat .env.local 
           npm ci
       - name: Wait for Postgres
         run: |
