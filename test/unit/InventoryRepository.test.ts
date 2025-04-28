@@ -2,7 +2,7 @@ import { InventoryRepository } from "@lib/data/repositories/InventoryRepository"
 import { db, inventory } from "../../db";
 import { eq } from "drizzle-orm";
 // import { Inventory } from "@lib/data/entities";
-
+//änderung in backend
 jest.mock("../../db", () => ({
     db: {
         select: jest.fn().mockReturnThis(),
